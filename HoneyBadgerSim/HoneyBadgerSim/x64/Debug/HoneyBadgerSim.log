@@ -1,2 +1,5 @@
-﻿  HoneyBadgerSim.cpp
+﻿  Network.cpp
+  Node.cpp
+  main.cpp
+  Generating Code...
   HoneyBadgerSim.vcxproj -> C:\Users\Filip\Desktop\the_honey_badger_of_bft_protocols\HoneyBadgerSim\x64\Debug\HoneyBadgerSim.exe

@@ -3,8 +3,32 @@
   "WorkspaceRootPath": "C:\\Users\\Filip\\Desktop\\the_honey_badger_of_bft_protocols\\HoneyBadgerSim\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{2FD9064E-734D-4A7F-8597-58F888E35DED}|HoneyBadgerSim.vcxproj|C:\\Users\\Filip\\Desktop\\the_honey_badger_of_bft_protocols\\HoneyBadgerSim\\HoneyBadgerSim.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{2FD9064E-734D-4A7F-8597-58F888E35DED}|HoneyBadgerSim.vcxproj|solutionrelative:HoneyBadgerSim.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+      "AbsoluteMoniker": "D:0:0:{2FD9064E-734D-4A7F-8597-58F888E35DED}|HoneyBadgerSim.vcxproj|C:\\Users\\Filip\\Desktop\\the_honey_badger_of_bft_protocols\\HoneyBadgerSim\\Message.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{2FD9064E-734D-4A7F-8597-58F888E35DED}|HoneyBadgerSim.vcxproj|solutionrelative:Message.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2FD9064E-734D-4A7F-8597-58F888E35DED}|HoneyBadgerSim.vcxproj|C:\\Users\\Filip\\Desktop\\the_honey_badger_of_bft_protocols\\HoneyBadgerSim\\Transaction.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{2FD9064E-734D-4A7F-8597-58F888E35DED}|HoneyBadgerSim.vcxproj|solutionrelative:Transaction.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2FD9064E-734D-4A7F-8597-58F888E35DED}|HoneyBadgerSim.vcxproj|C:\\Users\\Filip\\Desktop\\the_honey_badger_of_bft_protocols\\HoneyBadgerSim\\Network.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{2FD9064E-734D-4A7F-8597-58F888E35DED}|HoneyBadgerSim.vcxproj|solutionrelative:Network.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2FD9064E-734D-4A7F-8597-58F888E35DED}|HoneyBadgerSim.vcxproj|C:\\Users\\Filip\\Desktop\\the_honey_badger_of_bft_protocols\\HoneyBadgerSim\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{2FD9064E-734D-4A7F-8597-58F888E35DED}|HoneyBadgerSim.vcxproj|solutionrelative:main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2FD9064E-734D-4A7F-8597-58F888E35DED}|HoneyBadgerSim.vcxproj|C:\\Users\\Filip\\Desktop\\the_honey_badger_of_bft_protocols\\HoneyBadgerSim\\Node.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{2FD9064E-734D-4A7F-8597-58F888E35DED}|HoneyBadgerSim.vcxproj|solutionrelative:Node.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2FD9064E-734D-4A7F-8597-58F888E35DED}|HoneyBadgerSim.vcxproj|C:\\Users\\Filip\\Desktop\\the_honey_badger_of_bft_protocols\\HoneyBadgerSim\\Node.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{2FD9064E-734D-4A7F-8597-58F888E35DED}|HoneyBadgerSim.vcxproj|solutionrelative:Node.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2FD9064E-734D-4A7F-8597-58F888E35DED}|HoneyBadgerSim.vcxproj|C:\\Users\\Filip\\Desktop\\the_honey_badger_of_bft_protocols\\HoneyBadgerSim\\Network.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{2FD9064E-734D-4A7F-8597-58F888E35DED}|HoneyBadgerSim.vcxproj|solutionrelative:Network.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     }
   ],
   "DocumentGroupContainers": [
@@ -14,17 +38,95 @@
       "DocumentGroups": [
         {
           "DockedWidth": 125,
-          "SelectedChildIndex": 0,
+          "SelectedChildIndex": 1,
           "Children": [
             {
               "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Transaction.h",
+              "DocumentMoniker": "C:\\Users\\Filip\\Desktop\\the_honey_badger_of_bft_protocols\\HoneyBadgerSim\\Transaction.h",
+              "RelativeDocumentMoniker": "Transaction.h",
+              "ToolTip": "C:\\Users\\Filip\\Desktop\\the_honey_badger_of_bft_protocols\\HoneyBadgerSim\\Transaction.h",
+              "RelativeToolTip": "Transaction.h",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAgAAAACAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2026-03-19T21:49:05.73Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "HoneyBadgerSim.cpp",
-              "DocumentMoniker": "C:\\Users\\Filip\\Desktop\\the_honey_badger_of_bft_protocols\\HoneyBadgerSim\\HoneyBadgerSim.cpp",
-              "RelativeDocumentMoniker": "HoneyBadgerSim.cpp",
-              "ToolTip": "C:\\Users\\Filip\\Desktop\\the_honey_badger_of_bft_protocols\\HoneyBadgerSim\\HoneyBadgerSim.cpp",
-              "RelativeToolTip": "HoneyBadgerSim.cpp",
-              "ViewState": "AQIAAAAAAAAAAAAAAAAAABoBAAAJAAAA",
+              "Title": "Message.h",
+              "DocumentMoniker": "C:\\Users\\Filip\\Desktop\\the_honey_badger_of_bft_protocols\\HoneyBadgerSim\\Message.h",
+              "RelativeDocumentMoniker": "Message.h",
+              "ToolTip": "C:\\Users\\Filip\\Desktop\\the_honey_badger_of_bft_protocols\\HoneyBadgerSim\\Message.h",
+              "RelativeToolTip": "Message.h",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAAA8AAAASAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2026-03-18T20:24:44.859Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "Network.cpp",
+              "DocumentMoniker": "C:\\Users\\Filip\\Desktop\\the_honey_badger_of_bft_protocols\\HoneyBadgerSim\\Network.cpp",
+              "RelativeDocumentMoniker": "Network.cpp",
+              "ToolTip": "C:\\Users\\Filip\\Desktop\\the_honey_badger_of_bft_protocols\\HoneyBadgerSim\\Network.cpp",
+              "RelativeToolTip": "Network.cpp",
+              "ViewState": "AQIAAAwAAAAAAAAAAAAAAB0AAAAYAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2026-03-18T20:29:08.336Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Node.cpp",
+              "DocumentMoniker": "C:\\Users\\Filip\\Desktop\\the_honey_badger_of_bft_protocols\\HoneyBadgerSim\\Node.cpp",
+              "RelativeDocumentMoniker": "Node.cpp",
+              "ToolTip": "C:\\Users\\Filip\\Desktop\\the_honey_badger_of_bft_protocols\\HoneyBadgerSim\\Node.cpp",
+              "RelativeToolTip": "Node.cpp",
+              "ViewState": "AQIAAEoAAAAAAAAAAADwv2kAAAABAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2026-03-18T20:28:34.009Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Network.h",
+              "DocumentMoniker": "C:\\Users\\Filip\\Desktop\\the_honey_badger_of_bft_protocols\\HoneyBadgerSim\\Network.h",
+              "RelativeDocumentMoniker": "Network.h",
+              "ToolTip": "C:\\Users\\Filip\\Desktop\\the_honey_badger_of_bft_protocols\\HoneyBadgerSim\\Network.h",
+              "RelativeToolTip": "Network.h",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAsAAAApAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2026-03-18T20:25:09.15Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "Node.h",
+              "DocumentMoniker": "C:\\Users\\Filip\\Desktop\\the_honey_badger_of_bft_protocols\\HoneyBadgerSim\\Node.h",
+              "RelativeDocumentMoniker": "Node.h",
+              "ToolTip": "C:\\Users\\Filip\\Desktop\\the_honey_badger_of_bft_protocols\\HoneyBadgerSim\\Node.h",
+              "RelativeToolTip": "Node.h",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAACMAAAACAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2026-03-18T20:24:57.587Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "main.cpp",
+              "DocumentMoniker": "C:\\Users\\Filip\\Desktop\\the_honey_badger_of_bft_protocols\\HoneyBadgerSim\\main.cpp",
+              "RelativeDocumentMoniker": "main.cpp",
+              "ToolTip": "C:\\Users\\Filip\\Desktop\\the_honey_badger_of_bft_protocols\\HoneyBadgerSim\\main.cpp",
+              "RelativeToolTip": "main.cpp",
+              "ViewState": "AQIAABIAAAAAAAAAAAAAACQAAAAAAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
               "WhenOpened": "2026-02-10T21:53:30.339Z",
               "EditorCaption": ""
