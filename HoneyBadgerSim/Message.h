@@ -7,7 +7,9 @@ enum class MessageType
     Proposal,
     Vote,
     Commit,
-    Debug
+    Debug,
+    TransactionBroadcast,
+    ProposalBroadcast
 };
 
 struct Message

@@ -1,13 +1,15 @@
 #include <iostream>
-#include <vector>
 #include <memory>
+#include <vector>
 
 #include "Node.h"
 #include "Network.h"
 
 int main()
 {
-   /*  constexpr int totalNodes = 44;
+    constexpr int totalNodes = 3;
+    constexpr int totalEpochs = 3;
+    constexpr int maxTransactionsPerProposal = 2;
 
     Network network;
     std::vector<std::unique_ptr<Node>> nodes;
@@ -16,36 +18,107 @@ int main()
     {
         nodes.push_back(std::make_unique<Node>(i));
         nodes.back()->AttachNetwork(&network);
+        nodes.back()->SetTotalNodes(totalNodes);
         network.RegisterNode(nodes.back().get());
     }
 
-    std::cout << "=== Step 1: Basic network simulation ===\n\n";
+    std::cout << "=== Step 1: Transaction broadcast across the network ===\n\n";
 
-    nodes[0]->Broadcast(MessageType::Debug, "Hello from Node 0", 0, totalNodes);
+    Transaction tx0a = nodes[0]->GenerateTransaction("tx from node 0 - A");
+    nodes[0]->BroadcastTransaction(tx0a, totalNodes);
+
+    Transaction tx0b = nodes[0]->GenerateTransaction("tx from node 0 - B");
+    nodes[0]->BroadcastTransaction(tx0b, totalNodes);
+
+    Transaction tx1a = nodes[1]->GenerateTransaction("tx from node 1 - A");
+    nodes[1]->BroadcastTransaction(tx1a, totalNodes);
+
+    Transaction tx2a = nodes[2]->GenerateTransaction("tx from node 2 - A");
+    nodes[2]->BroadcastTransaction(tx2a, totalNodes);
+
+    Transaction tx2b = nodes[2]->GenerateTransaction("tx from node 2 - B");
+    nodes[2]->BroadcastTransaction(tx2b, totalNodes);
 
     network.DeliverAll();
 
-    std::cout << "\n=== Processing inboxes ===\n\n";
+    std::cout << "\n=== Processing inboxes after transaction broadcast ===\n\n";
     for (auto& node : nodes)
     {
         node->ProcessInbox();
-    }*/
+        std::cout << '\n';
+    }
 
-    Node node0(0);
-    Node node1(1);
-    Node node2(2);
+    std::cout << "=== Transaction pools before consensus ===\n\n";
+    for (const auto& node : nodes)
+    {
+        node->PrintTransactionPool();
+        std::cout << '\n';
+    }
 
-    node0.GenerateTransaction("tx from node 0 - A");
-    node0.GenerateTransaction("tx from node 0 - B");
+    for (int epoch = 0; epoch < totalEpochs; ++epoch)
+    {
+        std::cout << "\n==================================================\n";
+        std::cout << "=== EPOCH " << epoch << " ===\n";
+        std::cout << "==================================================\n\n";
 
-    node1.GenerateTransaction("tx from node 1 - A");
+        for (auto& node : nodes)
+        {
+            node->StartEpoch(epoch);
+            node->PrintEpochInfo();
+        }
 
-    node2.GenerateTransaction("tx from node 2 - A");
-    node2.GenerateTransaction("tx from node 2 - B");
+        std::cout << '\n';
 
-    node0.PrintTransactionPool();
-    node1.PrintTransactionPool();
-    node2.PrintTransactionPool();
+        const int leaderId = epoch % totalNodes;
+
+        std::cout
+            << "Leader for epoch " << epoch
+            << " is Node " << leaderId << "\n\n";
+
+        Proposal leaderProposal = nodes[leaderId]->CreateProposal(maxTransactionsPerProposal);
+
+        std::cout
+            << "Node " << leaderId
+            << " broadcasts proposal for epoch " << epoch << "\n";
+
+        nodes[leaderId]->BroadcastProposal(leaderProposal, totalNodes);
+
+        network.DeliverAll();
+
+        std::cout << "\n=== Processing inboxes after proposal broadcast ===\n\n";
+        for (auto& node : nodes)
+        {
+            node->ProcessInbox();
+            std::cout << '\n';
+        }
+
+        std::cout << "=== Deliver votes ===\n\n";
+        network.DeliverAll();
+
+        std::cout << "\n=== Processing inboxes after vote delivery ===\n\n";
+        for (auto& node : nodes)
+        {
+            node->ProcessInbox();
+            std::cout << '\n';
+        }
+
+        std::cout << "=== Deliver commits ===\n\n";
+        network.DeliverAll();
+
+        std::cout << "\n=== Processing inboxes after commit delivery ===\n\n";
+        for (auto& node : nodes)
+        {
+            node->ProcessInbox();
+            std::cout << '\n';
+        }
+
+        std::cout << "=== Proposals stored in epoch " << epoch << " ===\n\n";
+        for (const auto& node : nodes)
+        {
+            node->PrintReceivedProposals();
+            std::cout << '\n';
+        }
+    }
 
     return 0;
 }
