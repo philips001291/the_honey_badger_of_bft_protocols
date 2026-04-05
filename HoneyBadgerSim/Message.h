@@ -4,12 +4,10 @@
 
 enum class MessageType
 {
-    Proposal,
-    Vote,
-    Commit,
+    ProposalBroadcast,
+    Echo,
     Debug,
-    TransactionBroadcast,
-    ProposalBroadcast
+    TransactionBroadcast
 };
 
 struct Message

@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 
@@ -12,7 +13,9 @@ Node::Node(int id)
     : mId(id),
     mCurrentEpoch(0),
     mTotalNodes(0),
-    mNetwork(nullptr)
+    mNetwork(nullptr),
+    mBehavior(ByzantineBehavior::Honest),
+    mEpochFinalized(false)
 {
 }
 
@@ -26,6 +29,11 @@ void Node::SetTotalNodes(int totalNodes)
     mTotalNodes = totalNodes;
 }
 
+void Node::SetByzantineBehavior(ByzantineBehavior behavior)
+{
+    mBehavior = behavior;
+}
+
 int Node::GetId() const
 {
     return mId;
@@ -36,18 +44,37 @@ int Node::GetCurrentEpoch() const
     return mCurrentEpoch;
 }
 
-bool Node::IsLeaderForCurrentEpoch() const
+ByzantineBehavior Node::GetByzantineBehavior() const
 {
-    return mId == GetLeaderForEpoch(mCurrentEpoch);
+    return mBehavior;
+}
+
+std::string Node::GetBehaviorName() const
+{
+    switch (mBehavior)
+    {
+    case ByzantineBehavior::Honest:
+        return "Honest";
+    case ByzantineBehavior::SilentProposal:
+        return "SilentProposal";
+    case ByzantineBehavior::InvalidProposal:
+        return "InvalidProposal";
+    case ByzantineBehavior::EquivocatingProposal:
+        return "EquivocatingProposal";
+    }
+
+    return "Unknown";
 }
 
 void Node::StartEpoch(int epoch)
 {
     mCurrentEpoch = epoch;
-    mReceivedProposals.clear();
-    mVotesByProposal.clear();
-    mCommittedProposals.clear();
-    mCommitBroadcasted.clear();
+    mInbox.clear();
+    mDirectProposalsBySender.clear();
+    mRbcDeliveredProposals.clear();
+    mEchoesByProposer.clear();
+    mEchoBroadcastedForProposer.clear();
+    mEpochFinalized = false;
 }
 
 void Node::PrintEpochInfo() const
@@ -55,14 +82,7 @@ void Node::PrintEpochInfo() const
     std::cout
         << "Node " << mId
         << " | epoch=" << mCurrentEpoch
-        << " | leader=" << GetLeaderForEpoch(mCurrentEpoch);
-
-    if (IsLeaderForCurrentEpoch())
-    {
-        std::cout << " -> I am leader";
-    }
-
-    std::cout << '\n';
+        << " | behavior=" << GetBehaviorName() << '\n';
 }
 
 void Node::SendMessage(int receiverId, MessageType type, const std::string& payload, int epoch)
@@ -140,101 +160,84 @@ void Node::ProcessInbox()
         else if (msg.type == MessageType::ProposalBroadcast)
         {
             Proposal proposal = DeserializeProposal(msg.payload);
-            const int expectedLeader = GetLeaderForEpoch(mCurrentEpoch);
 
             std::cout
-                << "  Received proposal from Node " << msg.senderId
+                << "  Received PROPOSAL from Node " << msg.senderId
                 << " | proposer=" << proposal.proposerId
-                << " | expected leader=" << expectedLeader
                 << " | tx_count=" << proposal.transactions.size();
 
-            if (proposal.proposerId != expectedLeader || msg.senderId != expectedLeader)
+            if (proposal.proposerId != msg.senderId)
             {
-                std::cout << " -> rejected (not from current leader)\n";
+                std::cout << " -> rejected (sender/proposer mismatch)\n";
                 continue;
             }
 
-            if (!HasProposalFrom(proposal.proposerId))
+            mDirectProposalsBySender[msg.senderId] = proposal;
+
+            if (!IsProposalValid(proposal))
             {
-                mReceivedProposals.push_back(proposal);
-                std::cout << " -> stored";
-
-                if (IsProposalValid(proposal))
-                {
-                    SendMessage(
-                        proposal.proposerId,
-                        MessageType::Vote,
-                        std::to_string(proposal.proposerId),
-                        mCurrentEpoch);
-
-                    std::cout << " -> vote sent to leader";
-                }
-                else
-                {
-                    std::cout << " -> invalid proposal, no vote";
-                }
-
-                std::cout << '\n';
-            }
-            else
-            {
-                std::cout << " -> duplicate ignored\n";
-            }
-        }
-        else if (msg.type == MessageType::Vote)
-        {
-            int proposerId = std::stoi(msg.payload);
-
-            std::cout
-                << "  Received vote from Node " << msg.senderId
-                << " for proposal of Node " << proposerId;
-
-            RegisterVote(proposerId, msg.senderId);
-
-            std::cout
-                << " | unique votes=" << mVotesByProposal[proposerId].size()
-                << '\n';
-
-            if (proposerId == mId && IsLeaderForCurrentEpoch())
-            {
-                TryCommitProposal(proposerId, mTotalNodes);
-            }
-        }
-        else if (msg.type == MessageType::Commit)
-        {
-            int proposerId = std::stoi(msg.payload);
-            const int expectedLeader = GetLeaderForEpoch(mCurrentEpoch);
-
-            std::cout
-                << "  Received commit for proposal of Node "
-                << proposerId;
-
-            if (proposerId != expectedLeader || msg.senderId != expectedLeader)
-            {
-                std::cout << " -> rejected (commit not from current leader)\n";
+                std::cout << " -> invalid, no ECHO\n";
                 continue;
             }
 
-            if (!HasCommittedProposal(proposerId))
+            std::cout << " -> valid";
+
+            if (mEchoBroadcastedForProposer.find(proposal.proposerId) == mEchoBroadcastedForProposer.end())
             {
-                mCommittedProposals.insert(proposerId);
-                std::cout << " -> committed\n";
+                std::cout << " -> broadcasting ECHO\n";
+                BroadcastEchoForProposal(proposal, mTotalNodes);
             }
             else
             {
-                std::cout << " -> duplicate ignored\n";
+                std::cout << " -> ECHO already sent\n";
             }
+        }
+        else if (msg.type == MessageType::Echo)
+        {
+            int proposerId = -1;
+            Proposal proposal = DeserializeEchoPayload(msg.payload, proposerId);
+
+            std::cout
+                << "  Received ECHO from Node " << msg.senderId
+                << " for proposer " << proposerId;
+
+            if (proposal.proposerId != proposerId)
+            {
+                std::cout << " -> rejected (echo payload mismatch)\n";
+                continue;
+            }
+
+            if (!IsProposalValid(proposal))
+            {
+                std::cout << " -> rejected (echo contains invalid proposal)\n";
+                continue;
+            }
+
+            RegisterEcho(proposerId, proposal, msg.senderId);
+            const std::string serializedProposal = SerializeProposal(proposal);
+            const int echoCount = static_cast<int>(mEchoesByProposer[proposerId][serializedProposal].size());
+
+            std::cout
+                << " | matching echoes=" << echoCount
+                << '/' << GetRequiredProposalCount() << '\n';
+
+            TryDeliverRbcProposal(proposerId, proposal);
+            TryFinalizeCommonSubset();
         }
         else
         {
             std::cout
-                << "  Received from Node " << msg.senderId
+                << "  Received legacy/unsupported message from Node " << msg.senderId
                 << " | epoch=" << msg.epoch
                 << " | payload=\"" << msg.payload << "\"\n";
         }
     }
 
     mInbox.clear();
+}
+
+void Node::TickTimeouts()
+{
 }
 
 void Node::AddTransaction(const Transaction& tx)
@@ -294,24 +297,49 @@ Proposal Node::CreateProposal(int maxTransactions) const
     return proposal;
 }
 
-void Node::BroadcastProposal(const Proposal& proposal, int totalNodes)
+void Node::BroadcastProposalBatch(const Proposal& proposal, int totalNodes)
 {
-    Broadcast(MessageType::ProposalBroadcast, SerializeProposal(proposal), mCurrentEpoch, totalNodes);
+    if (mBehavior == ByzantineBehavior::SilentProposal)
+    {
+        std::cout << "Node " << mId << " is Byzantine: stays silent and sends no proposal\n";
+        return;
+    }
+
+    Proposal outgoingProposal = proposal;
+
+    if (mBehavior == ByzantineBehavior::InvalidProposal)
+    {
+        outgoingProposal = BuildInvalidProposalFrom(proposal);
+        std::cout << "Node " << mId << " is Byzantine: broadcasting INVALID proposal\n";
+        BroadcastProposalHonest(outgoingProposal, totalNodes);
+        return;
+    }
+
+    if (mBehavior == ByzantineBehavior::EquivocatingProposal)
+    {
+        std::cout << "Node " << mId << " is Byzantine: broadcasting DIFFERENT proposals to different nodes\n";
+        BroadcastProposalEquivocating(proposal, totalNodes);
+        return;
+    }
+
+    std::cout << "Node " << mId << " broadcasts proposal batch\n";
+    BroadcastProposalHonest(outgoingProposal, totalNodes);
+    BroadcastEchoForProposal(outgoingProposal, totalNodes);
 }
 
 void Node::PrintReceivedProposals() const
 {
-    std::cout << "Node " << mId << " received proposals:\n";
+    std::cout << "Node " << mId << " RBC-delivered proposals:\n";
 
-    if (mReceivedProposals.empty())
+    if (mRbcDeliveredProposals.empty())
     {
         std::cout << "  [empty]\n";
         return;
     }
 
-    for (const auto& proposal : mReceivedProposals)
+    for (const auto& [proposerId, proposal] : mRbcDeliveredProposals)
     {
-        std::cout << "  Proposal from Node " << proposal.proposerId << ":\n";
+        std::cout << "  Proposal from Node " << proposerId << ":\n";
 
         if (proposal.transactions.empty())
         {
@@ -329,6 +357,60 @@ void Node::PrintReceivedProposals() const
     }
 }
 
+void Node::PrintBlockchain() const
+{
+    std::cout << "Node " << mId << " blockchain:\n";
+
+    if (mBlockchain.empty())
+    {
+        std::cout << "  [empty]\n";
+        return;
+    }
+
+    for (const auto& block : mBlockchain)
+    {
+        std::cout
+            << "  Block epoch=" << block.epoch
+            << " | proposer=" << block.proposerId
+            << " | tx_count=" << block.transactions.size() << '\n';
+
+        if (block.transactions.empty())
+        {
+            std::cout << "    [empty]\n";
+            continue;
+        }
+
+        for (const auto& tx : block.transactions)
+        {
+            std::cout
+                << "    tx.id=" << tx.id
+                << " | creator=" << tx.creatorNodeId
+                << " | payload=\"" << tx.payload << "\"\n";
+        }
+    }
+}
+
+void Node::PrintState() const
+{
+    std::cout << "Node " << mId << " state:\n";
+    if (mBlockchain.empty())
+    {
+        std::cout << "  [state is implicit through committed blocks]\n";
+    }
+    else
+    {
+        std::cout << "  committed blocks=" << mBlockchain.size() << '\n';
+    }
+}
+
+void Node::PrintPbftLogSummary() const
+{
+    std::cout << "Node " << mId << " HoneyBadger/RBC summary:\n";
+    std::cout << "  epoch=" << mCurrentEpoch << " | directProposals=" << mDirectProposalsBySender.size()
+        << " | delivered=" << mRbcDeliveredProposals.size()
+        << " | finalized=" << (mEpochFinalized ? "yes" : "no") << '\n';
+}
+
 bool Node::HasTransaction(int txId) const
 {
     for (const auto& tx : mTransactionPool)
@@ -342,11 +424,11 @@ bool Node::HasTransaction(int txId) const
     return false;
 }
 
-bool Node::HasProposalFrom(int proposerId) const
+bool Node::HasBlockForEpoch(int epoch) const
 {
-    for (const auto& proposal : mReceivedProposals)
+    for (const auto& block : mBlockchain)
     {
-        if (proposal.proposerId == proposerId)
+        if (block.epoch == epoch)
         {
             return true;
         }
@@ -357,6 +439,11 @@ bool Node::HasProposalFrom(int proposerId) const
 
 bool Node::IsProposalValid(const Proposal& proposal) const
 {
+    if (proposal.transactions.empty())
+    {
+        return false;
+    }
+
     for (const auto& tx : proposal.transactions)
     {
         if (!HasTransaction(tx.id))
@@ -368,64 +455,187 @@ bool Node::IsProposalValid(const Proposal& proposal) const
     return true;
 }
 
-bool Node::HasCommittedProposal(int proposerId) const
+int Node::GetMaxFaultyNodes() const
 {
-    return mCommittedProposals.find(proposerId) != mCommittedProposals.end();
-}
-
-bool Node::HasBroadcastCommitFor(int proposerId) const
-{
-    return mCommitBroadcasted.find(proposerId) != mCommitBroadcasted.end();
-}
-
-int Node::GetRequiredVotes() const
-{
-    if (mTotalNodes <= 1)
-    {
-        return 1;
-    }
-
-    return (mTotalNodes / 2) + 1;
-}
-
-int Node::GetLeaderForEpoch(int epoch) const
-{
-    if (mTotalNodes <= 0)
+    if (mTotalNodes < 4)
     {
         return 0;
     }
 
-    return epoch % mTotalNodes;
+    return (mTotalNodes - 1) / 3;
 }
 
-void Node::RegisterVote(int proposerId, int voterId)
+int Node::GetRequiredProposalCount() const
 {
-    mVotesByProposal[proposerId].insert(voterId);
+    return mTotalNodes - GetMaxFaultyNodes();
 }
 
-void Node::TryCommitProposal(int proposerId, int totalNodes)
+void Node::RegisterEcho(int proposerId, const Proposal& proposal, int echoSenderId)
 {
-    const int currentVotes = static_cast<int>(mVotesByProposal[proposerId].size());
-    const int requiredVotes = GetRequiredVotes();
+    const std::string serializedProposal = SerializeProposal(proposal);
+    mEchoesByProposer[proposerId][serializedProposal].insert(echoSenderId);
+}
 
-    if (currentVotes >= requiredVotes && !HasBroadcastCommitFor(proposerId))
+void Node::TryDeliverRbcProposal(int proposerId, const Proposal& proposal)
+{
+    if (mRbcDeliveredProposals.find(proposerId) != mRbcDeliveredProposals.end())
+    {
+        return;
+    }
+
+    const std::string serializedProposal = SerializeProposal(proposal);
+    const int echoCount = static_cast<int>(mEchoesByProposer[proposerId][serializedProposal].size());
+
+    if (echoCount >= GetRequiredProposalCount())
     {
         std::cout
             << "  Node " << mId
-            << " collected enough votes for leader proposal"
-            << " | votes=" << currentVotes
-            << "/" << requiredVotes
-            << " -> broadcasting COMMIT\n";
+            << " RBC-delivered proposal of Node " << proposerId
+            << " with " << echoCount << " matching echoes\n";
 
-        mCommitBroadcasted.insert(proposerId);
-        mCommittedProposals.insert(proposerId);
-
-        Broadcast(
-            MessageType::Commit,
-            std::to_string(proposerId),
-            mCurrentEpoch,
-            totalNodes);
+        mRbcDeliveredProposals[proposerId] = proposal;
     }
+}
+
+void Node::TryFinalizeCommonSubset()
+{
+    if (mEpochFinalized)
+    {
+        return;
+    }
+
+    if (static_cast<int>(mRbcDeliveredProposals.size()) >= GetRequiredProposalCount())
+    {
+        std::cout
+            << "  Node " << mId
+            << " collected common subset of " << mRbcDeliveredProposals.size()
+            << " proposals -> finalizing epoch block\n";
+
+        FinalizeEpochBlock();
+    }
+}
+
+void Node::FinalizeEpochBlock()
+{
+    if (HasBlockForEpoch(mCurrentEpoch))
+    {
+        mEpochFinalized = true;
+        return;
+    }
+
+    std::set<int> seenTransactionIds;
+    std::vector<Transaction> mergedTransactions;
+
+    std::vector<int> proposers;
+    proposers.reserve(mRbcDeliveredProposals.size());
+    for (const auto& [proposerId, _] : mRbcDeliveredProposals)
+    {
+        proposers.push_back(proposerId);
+    }
+    std::sort(proposers.begin(), proposers.end());
+
+    for (int proposerId : proposers)
+    {
+        const Proposal& proposal = mRbcDeliveredProposals.at(proposerId);
+        for (const auto& tx : proposal.transactions)
+        {
+            if (seenTransactionIds.insert(tx.id).second)
+            {
+                mergedTransactions.push_back(tx);
+            }
+        }
+    }
+
+    std::sort(
+        mergedTransactions.begin(),
+        mergedTransactions.end(),
+        [](const Transaction& left, const Transaction& right)
+        {
+            return left.id < right.id;
+        });
+
+    Block block;
+    block.epoch = mCurrentEpoch;
+    block.proposerId = -1;
+    block.transactions = mergedTransactions;
+
+    mBlockchain.push_back(block);
+    RemoveCommittedTransactionsFromPool(mergedTransactions);
+    mEpochFinalized = true;
+}
+
+void Node::RemoveCommittedTransactionsFromPool(const std::vector<Transaction>& committedTransactions)
+{
+    mTransactionPool.erase(
+        std::remove_if(
+            mTransactionPool.begin(),
+            mTransactionPool.end(),
+            [&](const Transaction& localTx)
+            {
+                for (const auto& committedTx : committedTransactions)
+                {
+                    if (localTx.id == committedTx.id)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }),
+        mTransactionPool.end());
+}
+
+Proposal Node::BuildInvalidProposalFrom(const Proposal& baseProposal) const
+{
+    Proposal invalid = baseProposal;
+
+    if (!invalid.transactions.empty())
+    {
+        invalid.transactions[0].id += 10000;
+        invalid.transactions[0].payload += " [CORRUPTED]";
+    }
+
+    return invalid;
+}
+
+Proposal Node::BuildEquivocatingProposalForReceiver(const Proposal& baseProposal, int receiverId) const
+{
+    Proposal altered = baseProposal;
+
+    if (!altered.transactions.empty())
+    {
+        altered.transactions[0].payload += " [variant-for-node-" + std::to_string(receiverId) + "]";
+    }
+
+    return altered;
+}
+
+void Node::BroadcastProposalHonest(const Proposal& proposal, int totalNodes)
+{
+    Broadcast(MessageType::ProposalBroadcast, SerializeProposal(proposal), mCurrentEpoch, totalNodes);
+}
+
+void Node::BroadcastProposalEquivocating(const Proposal& proposal, int totalNodes)
+{
+    for (int i = 0; i < totalNodes; ++i)
+    {
+        if (i == mId)
+        {
+            continue;
+        }
+
+        Proposal perReceiverProposal = BuildEquivocatingProposalForReceiver(proposal, i);
+        SendMessage(i, MessageType::ProposalBroadcast, SerializeProposal(perReceiverProposal), mCurrentEpoch);
+    }
+}
+
+void Node::BroadcastEchoForProposal(const Proposal& proposal, int totalNodes)
+{
+    mEchoBroadcastedForProposer.insert(proposal.proposerId);
+    RegisterEcho(proposal.proposerId, proposal, mId);
+    TryDeliverRbcProposal(proposal.proposerId, proposal);
+    Broadcast(MessageType::Echo, SerializeEchoPayload(proposal.proposerId, proposal), mCurrentEpoch, totalNodes);
+    TryFinalizeCommonSubset();
 }
 
 std::string Node::SerializeTransaction(const Transaction& tx) const
@@ -485,4 +695,21 @@ Proposal Node::DeserializeProposal(const std::string& data) const
     }
 
     return proposal;
+}
+
+std::string Node::SerializeEchoPayload(int proposerId, const Proposal& proposal) const
+{
+    return std::to_string(proposerId) + "\n" + SerializeProposal(proposal);
+}
+
+Proposal Node::DeserializeEchoPayload(const std::string& data, int& proposerId) const
+{
+    const std::size_t firstNewLine = data.find('\n');
+    if (firstNewLine == std::string::npos)
+    {
+        throw std::runtime_error("Invalid echo payload format.");
+    }
+
+    proposerId = std::stoi(data.substr(0, firstNewLine));
+    return DeserializeProposal(data.substr(firstNewLine + 1));
 }

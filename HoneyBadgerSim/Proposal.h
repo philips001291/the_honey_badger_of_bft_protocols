@@ -5,6 +5,6 @@
 
 struct Proposal
 {
-    int proposerId;
+    int proposerId{};
     std::vector<Transaction> transactions;
 };

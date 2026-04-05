@@ -15,4 +15,6 @@ public:
     void RegisterNode(Node* node);
     void Send(const Message& message);
     void DeliverAll();
+    bool HasPendingMessages() const;
+    std::size_t PendingCount() const;
 };

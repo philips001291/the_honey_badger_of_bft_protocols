@@ -133,6 +133,7 @@
     <ClCompile Include="Node.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Block.h" />
     <ClInclude Include="Message.h" />
     <ClInclude Include="Network.h" />
     <ClInclude Include="Node.h" />

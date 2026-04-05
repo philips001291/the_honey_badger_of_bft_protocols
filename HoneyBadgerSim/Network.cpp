@@ -47,3 +47,13 @@ void Network::DeliverAll()
 
     mPendingMessages.clear();
 }
+
+bool Network::HasPendingMessages() const
+{
+    return !mPendingMessages.empty();
+}
+
+std::size_t Network::PendingCount() const
+{
+    return mPendingMessages.size();
+}

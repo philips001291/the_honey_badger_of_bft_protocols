@@ -7,8 +7,8 @@
 
 int main()
 {
-    constexpr int totalNodes = 3;
-    constexpr int totalEpochs = 3;
+    constexpr int totalNodes = 4;
+    constexpr int totalEpochs = 4;
     constexpr int maxTransactionsPerProposal = 2;
 
     Network network;
@@ -22,11 +22,10 @@ int main()
         network.RegisterNode(nodes.back().get());
     }
 
-    std::cout << "=== Step 1: Transaction broadcast across the network ===\n\n";
+    std::cout << "=== Transaction broadcast across the network ===\n\n";
 
     Transaction tx0a = nodes[0]->GenerateTransaction("tx from node 0 - A");
     nodes[0]->BroadcastTransaction(tx0a, totalNodes);
-
     Transaction tx0b = nodes[0]->GenerateTransaction("tx from node 0 - B");
     nodes[0]->BroadcastTransaction(tx0b, totalNodes);
 
@@ -36,8 +35,10 @@ int main()
     Transaction tx2a = nodes[2]->GenerateTransaction("tx from node 2 - A");
     nodes[2]->BroadcastTransaction(tx2a, totalNodes);
 
-    Transaction tx2b = nodes[2]->GenerateTransaction("tx from node 2 - B");
-    nodes[2]->BroadcastTransaction(tx2b, totalNodes);
+    Transaction tx3a = nodes[3]->GenerateTransaction("tx from node 3 - A");
+    nodes[3]->BroadcastTransaction(tx3a, totalNodes);
+    Transaction tx3b = nodes[3]->GenerateTransaction("tx from node 3 - B");
+    nodes[3]->BroadcastTransaction(tx3b, totalNodes);
 
     network.DeliverAll();
 
@@ -55,6 +56,9 @@ int main()
         std::cout << '\n';
     }
 
+    std::cout << "=== Simplified HoneyBadger-style parameters ===\n";
+    std::cout << "Nodes: " << totalNodes << " | assumed f=1 | required common subset size=N-f=3\n\n";
+
     for (int epoch = 0; epoch < totalEpochs; ++epoch)
     {
         std::cout << "\n==================================================\n";
@@ -63,61 +67,83 @@ int main()
 
         for (auto& node : nodes)
         {
+            node->SetByzantineBehavior(ByzantineBehavior::Honest);
+        }
+
+        if (epoch == 0)
+        {
+            nodes[3]->SetByzantineBehavior(ByzantineBehavior::EquivocatingProposal);
+        }
+        else if (epoch == 1)
+        {
+            nodes[2]->SetByzantineBehavior(ByzantineBehavior::InvalidProposal);
+        }
+        else if (epoch == 2)
+        {
+            nodes[1]->SetByzantineBehavior(ByzantineBehavior::SilentProposal);
+        }
+
+        for (auto& node : nodes)
+        {
             node->StartEpoch(epoch);
             node->PrintEpochInfo();
         }
 
-        std::cout << '\n';
+        std::cout << "\n=== Broadcast proposal batches (all nodes propose, no leader) ===\n\n";
+        for (auto& node : nodes)
+        {
+            Proposal proposal = node->CreateProposal(maxTransactionsPerProposal);
+            node->BroadcastProposalBatch(proposal, totalNodes);
+        }
 
-        const int leaderId = epoch % totalNodes;
-
-        std::cout
-            << "Leader for epoch " << epoch
-            << " is Node " << leaderId << "\n\n";
-
-        Proposal leaderProposal = nodes[leaderId]->CreateProposal(maxTransactionsPerProposal);
-
-        std::cout
-            << "Node " << leaderId
-            << " broadcasts proposal for epoch " << epoch << "\n";
-
-        nodes[leaderId]->BroadcastProposal(leaderProposal, totalNodes);
-
+        std::cout << "\n=== Deliver PROPOSAL messages ===\n";
         network.DeliverAll();
-
-        std::cout << "\n=== Processing inboxes after proposal broadcast ===\n\n";
+        std::cout << "\n=== Process PROPOSAL messages ===\n\n";
         for (auto& node : nodes)
         {
             node->ProcessInbox();
             std::cout << '\n';
         }
 
-        std::cout << "=== Deliver votes ===\n\n";
+        std::cout << "=== Deliver ECHO messages ===\n";
         network.DeliverAll();
-
-        std::cout << "\n=== Processing inboxes after vote delivery ===\n\n";
+        std::cout << "\n=== Process ECHO messages ===\n\n";
         for (auto& node : nodes)
         {
             node->ProcessInbox();
             std::cout << '\n';
         }
 
-        std::cout << "=== Deliver commits ===\n\n";
-        network.DeliverAll();
-
-        std::cout << "\n=== Processing inboxes after commit delivery ===\n\n";
-        for (auto& node : nodes)
-        {
-            node->ProcessInbox();
-            std::cout << '\n';
-        }
-
-        std::cout << "=== Proposals stored in epoch " << epoch << " ===\n\n";
+        std::cout << "=== RBC-delivered proposals in epoch " << epoch << " ===\n\n";
         for (const auto& node : nodes)
         {
             node->PrintReceivedProposals();
             std::cout << '\n';
         }
+
+        std::cout << "=== Blockchain after epoch " << epoch << " ===\n\n";
+        for (const auto& node : nodes)
+        {
+            node->PrintBlockchain();
+            std::cout << '\n';
+        }
+
+        std::cout << "=== Remaining transaction pools after epoch " << epoch << " ===\n\n";
+        for (const auto& node : nodes)
+        {
+            node->PrintTransactionPool();
+            std::cout << '\n';
+        }
+    }
+
+    std::cout << "\n==================================================\n";
+    std::cout << "=== FINAL BLOCKCHAINS ===\n";
+    std::cout << "==================================================\n\n";
+
+    for (const auto& node : nodes)
+    {
+        node->PrintBlockchain();
+        std::cout << '\n';
     }
 
     return 0;
